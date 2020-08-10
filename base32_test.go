@@ -2,6 +2,7 @@ package clockwork
 
 import (
 	"bytes"
+	"strings"
 	"testing"
 )
 
@@ -36,7 +37,7 @@ func TestEncode(t *testing.T) {
 	}
 }
 
-func TestWriter(t *testing.T) {
+func TestEncoder(t *testing.T) {
 	enc := NewEncoding()
 	for _, testCase := range testCases {
 		var buf bytes.Buffer
@@ -68,6 +69,22 @@ func TestDecode(t *testing.T) {
 		if n != len(plain) {
 			t.Errorf("unexpected length: want %d, got %d", len(plain), n)
 		}
+		if bytes.Compare(plain, []byte(testCase.plain)) != 0 {
+			t.Errorf("decoded '%s', expected '%s', actual '%s'\n",
+				testCase.encoded, testCase.plain, plain)
+		}
+	}
+}
+
+func TestDecoder(t *testing.T) {
+	enc := NewEncoding()
+	for _, testCase := range testCases {
+		r := strings.NewReader(testCase.encoded)
+		var buf bytes.Buffer
+		if _, err := buf.ReadFrom(NewDecoder(enc, r)); err != nil {
+			t.Errorf("error while decoding %q: %v", testCase.encoded, err)
+		}
+		plain := buf.Bytes()
 		if bytes.Compare(plain, []byte(testCase.plain)) != 0 {
 			t.Errorf("decoded '%s', expected '%s', actual '%s'\n",
 				testCase.encoded, testCase.plain, plain)

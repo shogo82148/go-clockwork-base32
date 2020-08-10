@@ -301,3 +301,88 @@ func (enc *Encoding) DecodeString(s string) ([]byte, error) {
 func (enc *Encoding) DecodedLen(n int) int {
 	return n * 5 / 8
 }
+
+type decoder struct {
+	err    error
+	enc    *Encoding
+	r      io.Reader
+	end    bool       // saw end of message
+	buf    [1024]byte // leftover input
+	nbuf   int
+	out    []byte // leftover decoded output
+	outbuf [1024 / 8 * 5]byte
+}
+
+func readEncodedData(r io.Reader, buf []byte) (n int, err error) {
+	for n < 1 && err == nil {
+		var nn int
+		nn, err = r.Read(buf[n:])
+		n += nn
+	}
+	return
+}
+
+func (d *decoder) Read(p []byte) (n int, err error) {
+	// based on https://github.com/golang/go/blob/ba9e10889976025ee1d027db6b1cad383ec56de8/src/encoding/base32/base32.go#L410
+
+	// Use leftover decoded output from last read.
+	if len(d.out) > 0 {
+		n = copy(p, d.out)
+		d.out = d.out[n:]
+		if len(d.out) == 0 {
+			return n, d.err
+		}
+		return n, nil
+	}
+
+	if d.err != nil {
+		return 0, d.err
+	}
+
+	// Read a chunk.
+	nn := len(p) / 5 * 8
+	if nn < 8 {
+		nn = 8
+	}
+	if nn > len(d.buf) {
+		nn = len(d.buf)
+	}
+	nn, d.err = readEncodedData(d.r, d.buf[d.nbuf:nn])
+	d.nbuf += nn
+
+	// Decode chunk into p, or d.out and then p if p is too small.
+	nr := d.nbuf
+	nw := d.enc.DecodedLen(d.nbuf)
+	if nw > len(p) {
+		nw, err = d.enc.decode(d.outbuf[0:], d.buf[0:nr])
+		d.out = d.outbuf[0:nw]
+		n = copy(p, d.out)
+		d.out = d.out[n:]
+	} else {
+		n, err = d.enc.decode(p, d.buf[0:nr])
+	}
+	d.nbuf -= nr
+
+	for i := 0; i < d.nbuf; i++ {
+		d.buf[i] = d.buf[i+nr]
+	}
+
+	if err != nil && (d.err == nil || d.err == io.EOF) {
+		d.err = err
+	}
+
+	if len(d.out) > 0 {
+		// We cannot return all the decoded bytes to the caller in this
+		// invocation of Read, so we return a nil error to ensure that Read
+		// will be called again.  The error stored in d.err, if any, will be
+		// returned with the last set of decoded bytes.
+		return n, nil
+	}
+
+	return n, d.err
+}
+
+// NewDecoder constructs a new base32 stream decoder.
+func NewDecoder(enc *Encoding, r io.Reader) io.Reader {
+	return &decoder{enc: enc, r: r}
+}
