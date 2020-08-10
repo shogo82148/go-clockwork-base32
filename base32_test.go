@@ -11,7 +11,8 @@ type testCase struct {
 	encoded string
 }
 
-var testCases = []testCase{
+var testCasesEncode = []testCase{
+	// from https://github.com/szktty/go-clockwork-base32/blob/c2cac4daa7ad2045089b943b377b12ac57e3254e/base32_test.go#L36-L44
 	{"foobar", "CSQPYRK1E8"},
 	{"Hello, world!", "91JPRV3F5GG7EVVJDHJ22"},
 	{
@@ -22,16 +23,33 @@ var testCases = []testCase{
 		"Wow, it really works!",
 		"AXQQEB10D5T20WK5C5P6RY90EXQQ4TVK44",
 	},
+
+	// from https://github.com/shiguredo/erlang-base32/blob/0cc88a702ce1d8ca345e516a05a9a85f7f23a718/test/base32_clockwork_test.erl#L7-L18
+	{"", ""},
+	{"f", "CR"},
+	{"fo", "CSQG"},
+	{"foo", "CSQPY"},
+	{"foob", "CSQPYRG"},
+	{"fooba", "CSQPYRK1"},
+	{"foobar", "CSQPYRK1E8"},
+	{
+		"\x01\xdd\x3e\x62\xfe\x15\x4e\xd7\x2b\x6d\x2d\x24\x39\x74\x66\x9d",
+		"07EKWRQY2N7DEAVD5MJ3JX36KM",
+	},
+	{
+		"Wow, it really works!",
+		"AXQQEB10D5T20WK5C5P6RY90EXQQ4TVK44",
+	},
 }
 
 func TestEncode(t *testing.T) {
 	enc := NewEncoding()
-	for _, testCase := range testCases {
+	for _, testCase := range testCasesEncode {
 		plain := []byte(testCase.plain)
 		encoded := make([]byte, enc.EncodedLen(len(plain)))
 		enc.Encode(encoded, plain)
 		if bytes.Compare(encoded, []byte(testCase.encoded)) != 0 {
-			t.Errorf("encoded '%s', expected '%s', actual '%s'\n",
+			t.Errorf("encoded %q, expected %q, actual %q\n",
 				testCase.plain, testCase.encoded, encoded)
 		}
 	}
@@ -39,7 +57,7 @@ func TestEncode(t *testing.T) {
 
 func TestEncoder(t *testing.T) {
 	enc := NewEncoding()
-	for _, testCase := range testCases {
+	for _, testCase := range testCasesEncode {
 		var buf bytes.Buffer
 		w := NewEncoder(enc, &buf)
 		if _, err := w.Write([]byte(testCase.plain)); err != nil {
@@ -51,15 +69,50 @@ func TestEncoder(t *testing.T) {
 			continue
 		}
 		if bytes.Compare(buf.Bytes(), []byte(testCase.encoded)) != 0 {
-			t.Errorf("encoded '%s', expected '%s', actual '%s'\n",
+			t.Errorf("encoded %q, expected %q, actual %q\n",
 				testCase.plain, testCase.encoded, buf.Bytes())
 		}
 	}
 }
 
+var testCasesDecode = []testCase{
+	// from https://github.com/szktty/go-clockwork-base32/blob/c2cac4daa7ad2045089b943b377b12ac57e3254e/base32_test.go#L36-L44
+	{"foobar", "CSQPYRK1E8"},
+	{"Hello, world!", "91JPRV3F5GG7EVVJDHJ22"},
+	{
+		"The quick brown fox jumps over the lazy dog.",
+		"AHM6A83HENMP6TS0C9S6YXVE41K6YY10D9TPTW3K41QQCSBJ41T6GS90DHGQMY90CHQPEBG",
+	},
+	{
+		"Wow, it really works!",
+		"AXQQEB10D5T20WK5C5P6RY90EXQQ4TVK44",
+	},
+
+	// from https://github.com/shiguredo/erlang-base32/blob/0cc88a702ce1d8ca345e516a05a9a85f7f23a718/test/base32_clockwork_test.erl#L20-L31
+	{"", ""},
+	{"f", "CR"},
+	{"fo", "CSQG"},
+	{"foo", "CSQPY"},
+	{"foob", "CSQPYRG"},
+	{"fooba", "CSQPYRK1"},
+	{"foobar", "CSQPYRK1E8"},
+	{
+		"\x01\xdd\x3e\x62\xfe\x15\x4e\xd7\x2b\x6d\x2d\x24\x39\x74\x66\x9d",
+		"07EKWRQY2N7DEAVD5MJ3JX36KM",
+	},
+	{
+		"Wow, it really works!",
+		"AXQQEB10D5T20WK5C5P6RY90EXQQ4TVK44",
+	},
+
+	// from https://gist.github.com/szktty/228f85794e4187882a77734c89c384a8#gistcomment-3392026
+	// > For example, both of `CR` and `CR0` can be decoded to `f`.
+	{"f", "CR0"},
+}
+
 func TestDecode(t *testing.T) {
 	enc := NewEncoding()
-	for _, testCase := range testCases {
+	for _, testCase := range testCasesDecode {
 		plain := make([]byte, enc.DecodedLen(len(testCase.encoded)))
 		encoded := []byte(testCase.encoded)
 		n, err := enc.Decode(plain, encoded)
@@ -70,7 +123,7 @@ func TestDecode(t *testing.T) {
 			t.Errorf("unexpected length: want %d, got %d", len(plain), n)
 		}
 		if bytes.Compare(plain, []byte(testCase.plain)) != 0 {
-			t.Errorf("decoded '%s', expected '%s', actual '%s'\n",
+			t.Errorf("decoded %q, expected %q, actual %q\n",
 				testCase.encoded, testCase.plain, plain)
 		}
 	}
@@ -78,7 +131,7 @@ func TestDecode(t *testing.T) {
 
 func TestDecoder(t *testing.T) {
 	enc := NewEncoding()
-	for _, testCase := range testCases {
+	for _, testCase := range testCasesDecode {
 		r := strings.NewReader(testCase.encoded)
 		var buf bytes.Buffer
 		if _, err := buf.ReadFrom(NewDecoder(enc, r)); err != nil {
@@ -86,7 +139,7 @@ func TestDecoder(t *testing.T) {
 		}
 		plain := buf.Bytes()
 		if bytes.Compare(plain, []byte(testCase.plain)) != 0 {
-			t.Errorf("decoded '%s', expected '%s', actual '%s'\n",
+			t.Errorf("decoded %q, expected %q, actual %q\n",
 				testCase.encoded, testCase.plain, plain)
 		}
 	}

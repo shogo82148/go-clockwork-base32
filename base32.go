@@ -264,7 +264,8 @@ func (enc *Encoding) decode(dst, src []byte) (n int, err error) {
 			dst[dsti+3] = dbuf[4]<<7 | dbuf[5]<<2 | dbuf[6]>>3
 			n++
 			fallthrough
-		case 5:
+		case 6, 5:
+			// dbuf[5] might be padding
 			dst[dsti+2] = dbuf[3]<<4 | dbuf[4]>>1
 			n++
 			fallthrough
@@ -272,7 +273,8 @@ func (enc *Encoding) decode(dst, src []byte) (n int, err error) {
 			dst[dsti+1] = dbuf[1]<<6 | dbuf[2]<<1 | dbuf[3]>>4
 			n++
 			fallthrough
-		case 2:
+		case 3, 2:
+			// dbuf[2] might be padding
 			dst[dsti+0] = dbuf[0]<<3 | dbuf[1]>>2
 			n++
 		}
