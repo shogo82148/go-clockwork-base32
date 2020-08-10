@@ -35,3 +35,23 @@ func TestEncode(t *testing.T) {
 		}
 	}
 }
+
+func TestWriter(t *testing.T) {
+	enc := NewEncoding()
+	for _, testCase := range testCases {
+		var buf bytes.Buffer
+		w := NewEncoder(enc, &buf)
+		if _, err := w.Write([]byte(testCase.plain)); err != nil {
+			t.Errorf("error while encoding %q: %v", testCase.plain, err)
+			continue
+		}
+		if err := w.Close(); err != nil {
+			t.Errorf("error while encoding %q: %v", testCase.plain, err)
+			continue
+		}
+		if bytes.Compare(buf.Bytes(), []byte(testCase.encoded)) != 0 {
+			t.Errorf("encoded '%s', expected '%s', actual '%s'\n",
+				testCase.plain, testCase.encoded, buf.Bytes())
+		}
+	}
+}

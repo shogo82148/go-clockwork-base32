@@ -1,6 +1,8 @@
 // Package clockwork implements Clockwork Base32 encoding as specified by https://gist.github.com/szktty/228f85794e4187882a77734c89c384a8
 package clockwork
 
+import "io"
+
 /*
  * Encodings
  */
@@ -124,4 +126,85 @@ func (enc *Encoding) EncodeToString(src []byte) string {
 // of an input buffer of length n.
 func (enc *Encoding) EncodedLen(n int) int {
 	return (n*8 + 4) / 5
+}
+
+type encoder struct {
+	err  error
+	enc  *Encoding
+	w    io.Writer
+	buf  [5]byte    // buffered data waiting to be encoded
+	nbuf int        // number of bytes in buf
+	out  [1024]byte // output buffer
+}
+
+func (e *encoder) Write(p []byte) (n int, err error) {
+	// based on https://github.com/golang/go/blob/ba9e10889976025ee1d027db6b1cad383ec56de8/src/encoding/base32/base32.go#L184
+
+	if e.err != nil {
+		return 0, e.err
+	}
+
+	// Leading fringe.
+	if e.nbuf > 0 {
+		var i int
+		for i = 0; i < len(p) && e.nbuf < 5; i++ {
+			e.buf[e.nbuf] = p[i]
+			e.nbuf++
+		}
+		n += i
+		p = p[i:]
+		if e.nbuf < 5 {
+			return
+		}
+		e.enc.Encode(e.out[0:], e.buf[0:])
+		if _, e.err = e.w.Write(e.out[0:8]); e.err != nil {
+			return n, e.err
+		}
+		e.nbuf = 0
+	}
+
+	// Large interior chunks.
+	for len(p) >= 5 {
+		nn := len(e.out) / 8 * 5
+		if nn > len(p) {
+			nn = len(p)
+			nn -= nn % 5
+		}
+		e.enc.Encode(e.out[0:], p[0:nn])
+		if _, e.err = e.w.Write(e.out[0 : nn/5*8]); e.err != nil {
+			return n, e.err
+		}
+		n += nn
+		p = p[nn:]
+	}
+
+	// Trailing fringe.
+	for i := 0; i < len(p); i++ {
+		e.buf[i] = p[i]
+	}
+	e.nbuf = len(p)
+	n += len(p)
+	return
+}
+
+// Close flushes any pending output from the encoder.
+// It is an error to call Write after calling Close.
+func (e *encoder) Close() error {
+	// If there's anything left in the buffer, flush it out
+	if e.err == nil && e.nbuf > 0 {
+		e.enc.Encode(e.out[0:], e.buf[0:e.nbuf])
+		encodedLen := e.enc.EncodedLen(e.nbuf)
+		e.nbuf = 0
+		_, e.err = e.w.Write(e.out[0:encodedLen])
+	}
+	return e.err
+}
+
+// NewEncoder returns a new base32 stream encoder. Data written to
+// the returned writer will be encoded using enc and then written to w.
+// Base32 encodings operate in 5-byte blocks; when finished
+// writing, the caller must Close the returned encoder to flush any
+// partially written blocks.
+func NewEncoder(enc *Encoding, w io.Writer) io.WriteCloser {
+	return &encoder{enc: enc, w: w}
 }
