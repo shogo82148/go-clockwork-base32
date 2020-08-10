@@ -1,7 +1,10 @@
 // Package clockwork implements Clockwork Base32 encoding as specified by https://gist.github.com/szktty/228f85794e4187882a77734c89c384a8
 package clockwork
 
-import "io"
+import (
+	"io"
+	"strconv"
+)
 
 /*
  * Encodings
@@ -10,7 +13,7 @@ import "io"
 // An Encoding is a radix 32 encoding/decoding scheme.
 type Encoding struct {
 	encode    [32]byte
-	decodeMap [256]int8
+	decodeMap [256]byte
 }
 
 // NewEncoding returns a new Encoding.
@@ -24,33 +27,33 @@ func NewEncoding() *Encoding {
 			'Y', 'Z',
 		},
 		// https://github.com/szktty/go-clockwork-base32/blob/c2cac4daa7ad2045089b943b377b12ac57e3254e/base32.go#L68-L95
-		decodeMap: [256]int8{
-			-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, /* 0-9 */
-			-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, /* 10-19 */
-			-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, /* 20-29 */
-			-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, /* 30-39 */
-			-1, -1, -1, -1, -1, -1, -1, -1, 0, 1, /* 40-49 */
-			2, 3, 4, 5, 6, 7, 8, 9, 0, -1, /* 50-59 */
-			-1, -1, -1, -1, -1, 10, 11, 12, 13, 14, /* 60-69 */
+		decodeMap: [256]byte{
+			0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, /* 0-9 */
+			0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, /* 10-19 */
+			0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, /* 20-29 */
+			0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, /* 30-39 */
+			0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0, 1, /* 40-49 */
+			2, 3, 4, 5, 6, 7, 8, 9, 0, 0xFF, /* 50-59 */
+			0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 10, 11, 12, 13, 14, /* 60-69 */
 			15, 16, 17, 1, 18, 19, 1, 20, 21, 0, /* 70-79 */
-			22, 23, 24, 25, 26, -2, 27, 28, 29, 30, /* 80-89 */
-			31, -1, -1, -1, -1, -1, -1, 10, 11, 12, /* 90-99 */
+			22, 23, 24, 25, 26, 0xFF, 27, 28, 29, 30, /* 80-89 */
+			31, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 10, 11, 12, /* 90-99 */
 			13, 14, 15, 16, 17, 1, 18, 19, 1, 20, /* 100-109 */
-			21, 0, 22, 23, 24, 25, 26, -1, 27, 28, /* 110-119 */
-			29, 30, 31, -1, -1, -1, -1, -1, -1, -1, /* 120-129 */
-			-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, /* 130-109 */
-			-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, /* 140-109 */
-			-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, /* 150-109 */
-			-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, /* 160-109 */
-			-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, /* 170-109 */
-			-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, /* 180-109 */
-			-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, /* 190-109 */
-			-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, /* 200-209 */
-			-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, /* 210-209 */
-			-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, /* 220-209 */
-			-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, /* 230-209 */
-			-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, /* 240-209 */
-			-1, -1, -1, -1, -1, -1, /* 250-256 */
+			21, 0, 22, 23, 24, 25, 26, 0xFF, 27, 28, /* 110-119 */
+			29, 30, 31, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, /* 120-129 */
+			0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, /* 130-109 */
+			0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, /* 140-109 */
+			0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, /* 150-109 */
+			0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, /* 160-109 */
+			0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, /* 170-109 */
+			0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, /* 180-109 */
+			0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, /* 190-109 */
+			0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, /* 200-209 */
+			0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, /* 210-209 */
+			0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, /* 220-209 */
+			0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, /* 230-209 */
+			0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, /* 240-209 */
+			0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, /* 250-256 */
 		},
 	}
 }
@@ -207,4 +210,94 @@ func (e *encoder) Close() error {
 // partially written blocks.
 func NewEncoder(enc *Encoding, w io.Writer) io.WriteCloser {
 	return &encoder{enc: enc, w: w}
+}
+
+/*
+ * Decoder
+ */
+
+// CorruptInputError is a decoding error.
+type CorruptInputError int64
+
+func (e CorruptInputError) Error() string {
+	return "illegal clockwork base32 data at input byte " + strconv.FormatInt(int64(e), 10)
+}
+
+// decode is like Decode but returns an additional 'end' value, which
+// indicates if end-of-message padding was encountered and thus any
+// additional data is an error. This method assumes that src has been
+// stripped of all supported whitespace ('\r' and '\n').
+func (enc *Encoding) decode(dst, src []byte) (n int, err error) {
+	// based on https://github.com/golang/go/blob/ba9e10889976025ee1d027db6b1cad383ec56de8/src/encoding/base32/base32.go#L277
+
+	// Lift the nil check outside of the loop.
+	_ = enc.decodeMap
+
+	dsti := 0
+	olen := len(src)
+
+	for len(src) > 0 {
+		// Decode quantum using the base32 alphabet
+		var dbuf [8]byte
+		dlen := len(src)
+		if dlen > 8 {
+			dlen = 8
+		}
+
+		for j := 0; j < dlen; j++ {
+			in := src[0]
+			src = src[1:]
+			dbuf[j] = enc.decodeMap[in]
+			if dbuf[j] == 0xFF {
+				return n, CorruptInputError(olen - len(src) - 1)
+			}
+		}
+
+		// Pack 8x 5-bit source blocks into 5 byte destination
+		// quantum
+		switch dlen {
+		case 8:
+			dst[dsti+4] = dbuf[6]<<5 | dbuf[7]
+			n++
+			fallthrough
+		case 7:
+			dst[dsti+3] = dbuf[4]<<7 | dbuf[5]<<2 | dbuf[6]>>3
+			n++
+			fallthrough
+		case 5:
+			dst[dsti+2] = dbuf[3]<<4 | dbuf[4]>>1
+			n++
+			fallthrough
+		case 4:
+			dst[dsti+1] = dbuf[1]<<6 | dbuf[2]<<1 | dbuf[3]>>4
+			n++
+			fallthrough
+		case 2:
+			dst[dsti+0] = dbuf[0]<<3 | dbuf[1]>>2
+			n++
+		}
+		dsti += 5
+	}
+	return n, nil
+}
+
+// Decode decodes src using the encoding enc. It writes at most
+// DecodedLen(len(src)) bytes to dst and returns the number of bytes
+// written. If src contains invalid base32 data, it will return the
+// number of bytes successfully written and CorruptInputError.
+func (enc *Encoding) Decode(dst, src []byte) (n int, err error) {
+	return enc.decode(dst, src)
+}
+
+// DecodeString returns the bytes represented by the base32 string s.
+func (enc *Encoding) DecodeString(s string) ([]byte, error) {
+	buf := []byte(s)
+	n, err := enc.decode(buf, buf)
+	return buf[:n], err
+}
+
+// DecodedLen returns the maximum length in bytes of the decoded data
+// corresponding to n bytes of base32-encoded data.
+func (enc *Encoding) DecodedLen(n int) int {
+	return n * 5 / 8
 }

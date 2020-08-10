@@ -55,3 +55,22 @@ func TestWriter(t *testing.T) {
 		}
 	}
 }
+
+func TestDecode(t *testing.T) {
+	enc := NewEncoding()
+	for _, testCase := range testCases {
+		plain := make([]byte, enc.DecodedLen(len(testCase.encoded)))
+		encoded := []byte(testCase.encoded)
+		n, err := enc.Decode(plain, encoded)
+		if err != nil {
+			t.Errorf("error while decoding %q: %v", testCase.encoded, err)
+		}
+		if n != len(plain) {
+			t.Errorf("unexpected length: want %d, got %d", len(plain), n)
+		}
+		if bytes.Compare(plain, []byte(testCase.plain)) != 0 {
+			t.Errorf("decoded '%s', expected '%s', actual '%s'\n",
+				testCase.encoded, testCase.plain, plain)
+		}
+	}
+}
