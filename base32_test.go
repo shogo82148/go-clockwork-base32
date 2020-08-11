@@ -2,6 +2,7 @@ package clockwork
 
 import (
 	"bytes"
+	"io/ioutil"
 	"strings"
 	"testing"
 )
@@ -142,5 +143,38 @@ func TestDecoder(t *testing.T) {
 			t.Errorf("decoded %q, expected %q, actual %q\n",
 				testCase.encoded, testCase.plain, plain)
 		}
+	}
+}
+
+func TestBig(t *testing.T) {
+	n := 3*1000 + 1
+	raw := make([]byte, n)
+	const alpha = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	for i := 0; i < n; i++ {
+		raw[i] = alpha[i%len(alpha)]
+	}
+	encoded := new(bytes.Buffer)
+	w := NewEncoder(Base32, encoded)
+	nn, err := w.Write(raw)
+	if nn != n || err != nil {
+		t.Fatalf("Encoder.Write(raw) = %d, %v want %d, nil", nn, err, n)
+	}
+	err = w.Close()
+	if err != nil {
+		t.Fatalf("Encoder.Close() = %v want nil", err)
+	}
+	decoded, err := ioutil.ReadAll(NewDecoder(Base32, encoded))
+	if err != nil {
+		t.Fatalf("ioutil.ReadAll(NewDecoder(...)): %v", err)
+	}
+
+	if !bytes.Equal(raw, decoded) {
+		var i int
+		for i = 0; i < len(decoded) && i < len(raw); i++ {
+			if decoded[i] != raw[i] {
+				break
+			}
+		}
+		t.Errorf("Decode(Encode(%d-byte string)) failed at offset %d", n, i)
 	}
 }
