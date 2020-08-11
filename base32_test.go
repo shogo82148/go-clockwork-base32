@@ -178,3 +178,37 @@ func TestBig(t *testing.T) {
 		t.Errorf("Decode(Encode(%d-byte string)) failed at offset %d", n, i)
 	}
 }
+
+func BenchmarkEncode(b *testing.B) {
+	data := make([]byte, 8192)
+	buf := make([]byte, Base32.EncodedLen(len(data)))
+	b.SetBytes(int64(len(data)))
+	for i := 0; i < b.N; i++ {
+		Base32.Encode(buf, data)
+	}
+}
+
+func BenchmarkEncodeToString(b *testing.B) {
+	data := make([]byte, 8192)
+	b.SetBytes(int64(len(data)))
+	for i := 0; i < b.N; i++ {
+		Base32.EncodeToString(data)
+	}
+}
+
+func BenchmarkDecode(b *testing.B) {
+	data := make([]byte, Base32.EncodedLen(8192))
+	Base32.Encode(data, make([]byte, 8192))
+	buf := make([]byte, 8192)
+	b.SetBytes(int64(len(data)))
+	for i := 0; i < b.N; i++ {
+		Base32.Decode(buf, data)
+	}
+}
+func BenchmarkDecodeString(b *testing.B) {
+	data := Base32.EncodeToString(make([]byte, 8192))
+	b.SetBytes(int64(len(data)))
+	for i := 0; i < b.N; i++ {
+		Base32.DecodeString(data)
+	}
+}
