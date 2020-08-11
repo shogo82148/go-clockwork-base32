@@ -6,6 +6,9 @@ import (
 	"strconv"
 )
 
+// Base32 is Clockwork Base32 encoding.
+var Base32 = NewEncoding()
+
 /*
  * Encodings
  */
