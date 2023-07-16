@@ -64,60 +64,50 @@ func NewEncoding() *Encoding {
 // Encode encodes src using the encoding enc, writing
 // EncodedLen(len(src)) bytes to dst.
 func (enc *Encoding) Encode(dst, src []byte) {
-	// based on https://github.com/golang/go/blob/ba9e10889976025ee1d027db6b1cad383ec56de8/src/encoding/base32/base32.go#L93
-
-	for len(src) > 0 {
-		var b [8]byte
-
+	for len(src) >= 5 {
 		// Unpack 8x 5-bit source blocks into a 5 byte
 		// destination quantum
+		val := uint64(src[0])<<32 | uint64(src[1])<<24 | uint64(src[2])<<16 | uint64(src[3])<<8 | uint64(src[4])
+		dst[0] = enc.encode[(val>>35)&0x1F]
+		dst[1] = enc.encode[(val>>30)&0x1F]
+		dst[2] = enc.encode[(val>>25)&0x1F]
+		dst[3] = enc.encode[(val>>20)&0x1F]
+		dst[4] = enc.encode[(val>>15)&0x1F]
+		dst[5] = enc.encode[(val>>10)&0x1F]
+		dst[6] = enc.encode[(val>>5)&0x1F]
+		dst[7] = enc.encode[(val>>0)&0x1F]
+		src = src[5:]
+		dst = dst[8:]
+	}
+
+	// Add the remaining small block
+	if len(src) > 0 {
+		var val uint64
 		switch len(src) {
 		default:
-			b[7] = src[4] & 0x1F
-			b[6] = src[4] >> 5
+			val |= uint64(src[4])
 			fallthrough
 		case 4:
-			b[6] |= (src[3] << 3) & 0x1F
-			b[5] = (src[3] >> 2) & 0x1F
-			b[4] = src[3] >> 7
+			val |= uint64(src[3]) << 8
 			fallthrough
 		case 3:
-			b[4] |= (src[2] << 1) & 0x1F
-			b[3] = (src[2] >> 4) & 0x1F
+			val |= uint64(src[2]) << 16
 			fallthrough
 		case 2:
-			b[3] |= (src[1] << 4) & 0x1F
-			b[2] = (src[1] >> 1) & 0x1F
-			b[1] = (src[1] >> 6) & 0x1F
+			val |= uint64(src[1]) << 24
 			fallthrough
 		case 1:
-			b[1] |= (src[0] << 2) & 0x1F
-			b[0] = src[0] >> 3
+			val |= uint64(src[0]) << 32
 		}
 
 		// Encode 5-bit blocks using the base32 alphabet
-		size := len(dst)
+		size := uint(len(dst))
 		if size >= 8 {
-			// Common case, unrolled for extra performance
-			dst[0] = enc.encode[b[0]&31]
-			dst[1] = enc.encode[b[1]&31]
-			dst[2] = enc.encode[b[2]&31]
-			dst[3] = enc.encode[b[3]&31]
-			dst[4] = enc.encode[b[4]&31]
-			dst[5] = enc.encode[b[5]&31]
-			dst[6] = enc.encode[b[6]&31]
-			dst[7] = enc.encode[b[7]&31]
-		} else {
-			for i := 0; i < size; i++ {
-				dst[i] = enc.encode[b[i]&31]
-			}
+			size = 8
 		}
-
-		if len(src) < 5 {
-			break
+		for i := uint(0); i < size; i++ {
+			dst[i] = enc.encode[(val>>(35-5*i))&31]
 		}
-		src = src[5:]
-		dst = dst[8:]
 	}
 }
 
@@ -226,28 +216,49 @@ func (e CorruptInputError) Error() string {
 
 // decode is like Decode but returns an additional 'end' value, which
 // indicates if end-of-message padding was encountered and thus any
-// additional data is an error. This method assumes that src has been
-// stripped of all supported whitespace ('\r' and '\n').
+// additional data is an error.
 func (enc *Encoding) decode(dst, src []byte) (n int, err error) {
-	// based on https://github.com/golang/go/blob/ba9e10889976025ee1d027db6b1cad383ec56de8/src/encoding/base32/base32.go#L277
-
 	// Lift the nil check outside of the loop.
 	_ = enc.decodeMap
 
-	dsti := 0
 	olen := len(src)
 
-	for len(src) > 0 {
+	// Decode in 8-byte chunks
+	for len(src) >= 8 {
+		var dbuf [8]byte
+		for j := 0; j < len(dbuf); j++ {
+			dbuf[j] = enc.decodeMap[src[j]]
+			if dbuf[j] == 0xFF {
+				return n, CorruptInputError(olen - len(src) + j)
+			}
+		}
+		src = src[8:]
+
+		// Pack 8x 5-bit source blocks into 5 byte destination
+		// quantum
+		val := uint64(dbuf[0])<<35 |
+			uint64(dbuf[1])<<30 |
+			uint64(dbuf[2])<<25 |
+			uint64(dbuf[3])<<20 |
+			uint64(dbuf[4])<<15 |
+			uint64(dbuf[5])<<10 |
+			uint64(dbuf[6])<<5 |
+			uint64(dbuf[7])
+		dst[0] = byte(val >> 32)
+		dst[1] = byte(val >> 24)
+		dst[2] = byte(val >> 16)
+		dst[3] = byte(val >> 8)
+		dst[4] = byte(val)
+		n += 5
+		dst = dst[5:]
+	}
+
+	// Add the remaining small block
+	if len(src) > 0 {
 		// Decode quantum using the base32 alphabet
 		var dbuf [8]byte
-		dlen := len(src)
-		if dlen > 8 {
-			dlen = 8
-		}
-
-		for j := 0; j < dlen; j++ {
-			in := src[0]
-			src = src[1:]
+		for j := 0; j < len(src); j++ {
+			in := src[j]
 			dbuf[j] = enc.decodeMap[in]
 			if dbuf[j] == 0xFF {
 				return n, CorruptInputError(olen - len(src) - 1)
@@ -256,30 +267,37 @@ func (enc *Encoding) decode(dst, src []byte) (n int, err error) {
 
 		// Pack 8x 5-bit source blocks into 5 byte destination
 		// quantum
-		switch dlen {
+		val := uint64(dbuf[0])<<35 |
+			uint64(dbuf[1])<<30 |
+			uint64(dbuf[2])<<25 |
+			uint64(dbuf[3])<<20 |
+			uint64(dbuf[4])<<15 |
+			uint64(dbuf[5])<<10 |
+			uint64(dbuf[6])<<5 |
+			uint64(dbuf[7])
+		switch len(src) {
 		case 8:
-			dst[dsti+4] = dbuf[6]<<5 | dbuf[7]
+			dst[4] = byte(val)
 			n++
 			fallthrough
 		case 7:
-			dst[dsti+3] = dbuf[4]<<7 | dbuf[5]<<2 | dbuf[6]>>3
+			dst[3] = byte(val >> 8)
 			n++
 			fallthrough
 		case 6, 5:
 			// dbuf[5] might be padding
-			dst[dsti+2] = dbuf[3]<<4 | dbuf[4]>>1
+			dst[2] = byte(val >> 16)
 			n++
 			fallthrough
 		case 4:
-			dst[dsti+1] = dbuf[1]<<6 | dbuf[2]<<1 | dbuf[3]>>4
+			dst[1] = byte(val >> 24)
 			n++
 			fallthrough
 		case 3, 2:
 			// dbuf[2] might be padding
-			dst[dsti+0] = dbuf[0]<<3 | dbuf[1]>>2
+			dst[0] = byte(val >> 32)
 			n++
 		}
-		dsti += 5
 	}
 	return n, nil
 }
