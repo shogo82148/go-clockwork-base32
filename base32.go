@@ -216,8 +216,7 @@ func (e CorruptInputError) Error() string {
 
 // decode is like Decode but returns an additional 'end' value, which
 // indicates if end-of-message padding was encountered and thus any
-// additional data is an error. This method assumes that src has been
-// stripped of all supported whitespace ('\r' and '\n').
+// additional data is an error.
 func (enc *Encoding) decode(dst, src []byte) (n int, err error) {
 	// Lift the nil check outside of the loop.
 	_ = enc.decodeMap
