@@ -64,8 +64,19 @@ func NewEncoding() *Encoding {
 // Encode encodes src using the encoding enc, writing
 // EncodedLen(len(src)) bytes to dst.
 func (enc *Encoding) Encode(dst, src []byte) {
-	// based on https://github.com/golang/go/blob/ba9e10889976025ee1d027db6b1cad383ec56de8/src/encoding/base32/base32.go#L93
-
+	for len(src) >= 5 {
+		val := uint64(src[0])<<32 | uint64(src[1])<<24 | uint64(src[2])<<16 | uint64(src[3])<<8 | uint64(src[4])
+		dst[0] = enc.encode[(val>>35)&31]
+		dst[1] = enc.encode[(val>>30)&31]
+		dst[2] = enc.encode[(val>>25)&31]
+		dst[3] = enc.encode[(val>>20)&31]
+		dst[4] = enc.encode[(val>>15)&31]
+		dst[5] = enc.encode[(val>>10)&31]
+		dst[6] = enc.encode[(val>>5)&31]
+		dst[7] = enc.encode[(val>>0)&31]
+		src = src[5:]
+		dst = dst[8:]
+	}
 	for len(src) > 0 {
 		var b [8]byte
 
