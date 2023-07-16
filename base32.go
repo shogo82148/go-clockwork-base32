@@ -65,19 +65,23 @@ func NewEncoding() *Encoding {
 // EncodedLen(len(src)) bytes to dst.
 func (enc *Encoding) Encode(dst, src []byte) {
 	for len(src) >= 5 {
+		// Unpack 8x 5-bit source blocks into a 5 byte
+		// destination quantum
 		val := uint64(src[0])<<32 | uint64(src[1])<<24 | uint64(src[2])<<16 | uint64(src[3])<<8 | uint64(src[4])
-		dst[0] = enc.encode[(val>>35)&31]
-		dst[1] = enc.encode[(val>>30)&31]
-		dst[2] = enc.encode[(val>>25)&31]
-		dst[3] = enc.encode[(val>>20)&31]
-		dst[4] = enc.encode[(val>>15)&31]
-		dst[5] = enc.encode[(val>>10)&31]
-		dst[6] = enc.encode[(val>>5)&31]
-		dst[7] = enc.encode[(val>>0)&31]
+		dst[0] = enc.encode[(val>>35)&0x1F]
+		dst[1] = enc.encode[(val>>30)&0x1F]
+		dst[2] = enc.encode[(val>>25)&0x1F]
+		dst[3] = enc.encode[(val>>20)&0x1F]
+		dst[4] = enc.encode[(val>>15)&0x1F]
+		dst[5] = enc.encode[(val>>10)&0x1F]
+		dst[6] = enc.encode[(val>>5)&0x1F]
+		dst[7] = enc.encode[(val>>0)&0x1F]
 		src = src[5:]
 		dst = dst[8:]
 	}
-	for len(src) > 0 {
+
+	// Add the remaining small block
+	if len(src) > 0 {
 		var b [8]byte
 
 		// Unpack 8x 5-bit source blocks into a 5 byte
@@ -109,26 +113,11 @@ func (enc *Encoding) Encode(dst, src []byte) {
 		// Encode 5-bit blocks using the base32 alphabet
 		size := len(dst)
 		if size >= 8 {
-			// Common case, unrolled for extra performance
-			dst[0] = enc.encode[b[0]&31]
-			dst[1] = enc.encode[b[1]&31]
-			dst[2] = enc.encode[b[2]&31]
-			dst[3] = enc.encode[b[3]&31]
-			dst[4] = enc.encode[b[4]&31]
-			dst[5] = enc.encode[b[5]&31]
-			dst[6] = enc.encode[b[6]&31]
-			dst[7] = enc.encode[b[7]&31]
-		} else {
-			for i := 0; i < size; i++ {
-				dst[i] = enc.encode[b[i]&31]
-			}
+			size = 8
 		}
-
-		if len(src) < 5 {
-			break
+		for i := 0; i < size; i++ {
+			dst[i] = enc.encode[b[i]&31]
 		}
-		src = src[5:]
-		dst = dst[8:]
 	}
 }
 
