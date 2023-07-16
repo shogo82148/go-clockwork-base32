@@ -309,7 +309,6 @@ type decoder struct {
 	err    error
 	enc    *Encoding
 	r      io.Reader
-	end    bool       // saw end of message
 	buf    [1024]byte // leftover input
 	nbuf   int
 	out    []byte // leftover decoded output
