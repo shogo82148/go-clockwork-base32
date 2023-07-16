@@ -49,7 +49,7 @@ func TestEncode(t *testing.T) {
 		plain := []byte(testCase.plain)
 		encoded := make([]byte, enc.EncodedLen(len(plain)))
 		enc.Encode(encoded, plain)
-		if bytes.Compare(encoded, []byte(testCase.encoded)) != 0 {
+		if !bytes.Equal(encoded, []byte(testCase.encoded)) {
 			t.Errorf("encoded %q, expected %q, actual %q\n",
 				testCase.plain, testCase.encoded, encoded)
 		}
@@ -69,7 +69,7 @@ func TestEncoder(t *testing.T) {
 			t.Errorf("error while encoding %q: %v", testCase.plain, err)
 			continue
 		}
-		if bytes.Compare(buf.Bytes(), []byte(testCase.encoded)) != 0 {
+		if !bytes.Equal(buf.Bytes(), []byte(testCase.encoded)) {
 			t.Errorf("encoded %q, expected %q, actual %q\n",
 				testCase.plain, testCase.encoded, buf.Bytes())
 		}
@@ -123,7 +123,7 @@ func TestDecode(t *testing.T) {
 		if n != len(plain) {
 			t.Errorf("unexpected length: want %d, got %d", len(plain), n)
 		}
-		if bytes.Compare(plain, []byte(testCase.plain)) != 0 {
+		if !bytes.Equal(plain, []byte(testCase.plain)) {
 			t.Errorf("decoded %q, expected %q, actual %q\n",
 				testCase.encoded, testCase.plain, plain)
 		}
@@ -139,7 +139,7 @@ func TestDecoder(t *testing.T) {
 			t.Errorf("error while decoding %q: %v", testCase.encoded, err)
 		}
 		plain := buf.Bytes()
-		if bytes.Compare(plain, []byte(testCase.plain)) != 0 {
+		if !bytes.Equal(plain, []byte(testCase.plain)) {
 			t.Errorf("decoded %q, expected %q, actual %q\n",
 				testCase.encoded, testCase.plain, plain)
 		}
