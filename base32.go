@@ -229,12 +229,14 @@ func (enc *Encoding) decode(dst, src []byte) (n int, err error) {
 		var dbuf [8]byte
 		for j := 0; j < len(dbuf); j++ {
 			dbuf[j] = enc.decodeMap[src[j]]
-			if dbuf[j] == 0xff {
+			if dbuf[j] == 0xFF {
 				return n, CorruptInputError(olen - len(src) + j)
 			}
 		}
 		src = src[8:]
 
+		// Pack 8x 5-bit source blocks into 5 byte destination
+		// quantum
 		val := uint64(dbuf[0])<<35 |
 			uint64(dbuf[1])<<30 |
 			uint64(dbuf[2])<<25 |
@@ -252,17 +254,12 @@ func (enc *Encoding) decode(dst, src []byte) (n int, err error) {
 		dst = dst[5:]
 	}
 
+	// Add the remaining small block
 	if len(src) > 0 {
 		// Decode quantum using the base32 alphabet
 		var dbuf [8]byte
-		dlen := len(src)
-		if dlen > 8 {
-			dlen = 8
-		}
-
-		for j := 0; j < dlen; j++ {
-			in := src[0]
-			src = src[1:]
+		for j := 0; j < len(src); j++ {
+			in := src[j]
 			dbuf[j] = enc.decodeMap[in]
 			if dbuf[j] == 0xFF {
 				return n, CorruptInputError(olen - len(src) - 1)
@@ -271,27 +268,35 @@ func (enc *Encoding) decode(dst, src []byte) (n int, err error) {
 
 		// Pack 8x 5-bit source blocks into 5 byte destination
 		// quantum
-		switch dlen {
+		val := uint64(dbuf[0])<<35 |
+			uint64(dbuf[1])<<30 |
+			uint64(dbuf[2])<<25 |
+			uint64(dbuf[3])<<20 |
+			uint64(dbuf[4])<<15 |
+			uint64(dbuf[5])<<10 |
+			uint64(dbuf[6])<<5 |
+			uint64(dbuf[7])
+		switch len(src) {
 		case 8:
-			dst[4] = dbuf[6]<<5 | dbuf[7]
+			dst[4] = byte(val)
 			n++
 			fallthrough
 		case 7:
-			dst[3] = dbuf[4]<<7 | dbuf[5]<<2 | dbuf[6]>>3
+			dst[3] = byte(val >> 8)
 			n++
 			fallthrough
 		case 6, 5:
 			// dbuf[5] might be padding
-			dst[2] = dbuf[3]<<4 | dbuf[4]>>1
+			dst[2] = byte(val >> 16)
 			n++
 			fallthrough
 		case 4:
-			dst[1] = dbuf[1]<<6 | dbuf[2]<<1 | dbuf[3]>>4
+			dst[1] = byte(val >> 24)
 			n++
 			fallthrough
 		case 3, 2:
 			// dbuf[2] might be padding
-			dst[0] = dbuf[0]<<3 | dbuf[1]>>2
+			dst[0] = byte(val >> 32)
 			n++
 		}
 	}
