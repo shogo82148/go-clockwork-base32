@@ -2,6 +2,7 @@ package clockwork
 
 import (
 	"bytes"
+	"io"
 	"io/ioutil"
 	"strings"
 	"testing"
@@ -43,6 +44,11 @@ var testCasesEncode = []testCase{
 	},
 }
 
+var bigtest = testCase{
+	"The quick brown fox jumps over the lazy dog.",
+	"AHM6A83HENMP6TS0C9S6YXVE41K6YY10D9TPTW3K41QQCSBJ41T6GS90DHGQMY90CHQPEBG",
+}
+
 func TestEncode(t *testing.T) {
 	enc := NewEncoding()
 	for _, testCase := range testCasesEncode {
@@ -72,6 +78,30 @@ func TestEncoder(t *testing.T) {
 		if !bytes.Equal(buf.Bytes(), []byte(testCase.encoded)) {
 			t.Errorf("encoded %q, expected %q, actual %q\n",
 				testCase.plain, testCase.encoded, buf.Bytes())
+		}
+	}
+}
+
+func TestEncoder_Buffering(t *testing.T) {
+	input := []byte(bigtest.plain)
+	for bs := 1; bs <= 24; bs++ {
+		bb := &strings.Builder{}
+		encoder := NewEncoder(NewEncoding(), bb)
+		for pos := 0; pos < len(input); pos += bs {
+			end := pos + bs
+			if end > len(input) {
+				end = len(input)
+			}
+			n, err := encoder.Write(input[pos:end])
+			if err != nil {
+				t.Errorf("error while encoding %q: %v", bigtest.plain, err)
+			}
+			if n != end-pos {
+				t.Errorf("unexpected wrote length: got %d, want %d", n, end-pos)
+			}
+		}
+		if err := encoder.Close(); err != nil {
+			t.Errorf("error while encoding %q: %v", bigtest.plain, err)
 		}
 	}
 }
@@ -210,6 +240,27 @@ func TestDecoder(t *testing.T) {
 		if !bytes.Equal(plain, []byte(testCase.plain)) {
 			t.Errorf("decoded %q, expected %q, actual %q\n",
 				testCase.encoded, testCase.plain, plain)
+		}
+	}
+}
+
+func TestDecoder_Buffering(t *testing.T) {
+	for bs := 1; bs <= 24; bs++ {
+		decoder := NewDecoder(Base32, strings.NewReader(bigtest.encoded))
+		buf := make([]byte, len(bigtest.plain)+24)
+		var total int
+		var n int
+		var err error
+		for total = 0; total < len(bigtest.plain) && err == nil; {
+			n, err = decoder.Read(buf[total : total+bs])
+			total += n
+		}
+		if err != nil && err != io.EOF {
+			t.Errorf("error while decoding %q: %v", bigtest.encoded, err)
+		}
+		if string(buf[0:total]) != bigtest.plain {
+			t.Errorf("decoded %q, expected %q, actual %q\n",
+				bigtest.encoded, bigtest.plain, buf[0:total])
 		}
 	}
 }
