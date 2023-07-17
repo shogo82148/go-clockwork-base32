@@ -109,6 +109,33 @@ var testCasesDecode = []testCase{
 	// from https://gist.github.com/szktty/228f85794e4187882a77734c89c384a8#gistcomment-3392026
 	// > For example, both of `CR` and `CR0` can be decoded to `f`.
 	{"f", "CR0"},
+
+	// Clockwork-Base32 accepts both upper and lower case letters.
+	{"foobar", "csqpyrk1e8"},
+	{"Hello, world!", "91jprv3f5gg7evvjdhj22"},
+	{
+		"The quick brown fox jumps over the lazy dog.",
+		"ahm6a83henmp6ts0c9s6yxve41k6yy10d9tptw3k41qqcsbj41t6gs90dhgqmy90chqpebg",
+	},
+	{
+		"Wow, it really works!",
+		"axqqeb10d5t20wk5c5p6ry90exqq4tvk44",
+	},
+	{"f", "cr"},
+	{"f", "cr0"},
+	{"fo", "csqg"},
+	{"foo", "csqpy"},
+	{"foob", "csqpyrg"},
+	{"fooba", "csqpyrk1"},
+	{"foobar", "csqpyrk1e8"},
+	{
+		"\x01\xdd\x3e\x62\xfe\x15\x4e\xd7\x2b\x6d\x2d\x24\x39\x74\x66\x9d",
+		"07ekwrqy2n7deavd5mj3jx36km",
+	},
+	{
+		"Wow, it really works!",
+		"axqqeb10d5t20wk5c5p6ry90exqq4tvk44",
+	},
 }
 
 func TestDecode(t *testing.T) {
