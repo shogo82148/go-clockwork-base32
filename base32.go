@@ -261,7 +261,7 @@ func (enc *Encoding) decode(dst, src []byte) (n int, err error) {
 			in := src[j]
 			dbuf[j] = enc.decodeMap[in]
 			if dbuf[j] == 0xFF {
-				return n, CorruptInputError(olen - len(src) - 1)
+				return n, CorruptInputError(olen - len(src) + j)
 			}
 		}
 

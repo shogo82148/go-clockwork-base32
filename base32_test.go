@@ -173,6 +173,31 @@ func TestDecode(t *testing.T) {
 	}
 }
 
+var testCasesDecodeError = []struct {
+	input string
+	pos   int64
+}{
+	{"U", 0},
+	{"u", 0},
+	{"CSQG*", 4},
+	{"CSQPYRK*", 7},
+}
+
+func TestDecode_Error(t *testing.T) {
+	enc := NewEncoding()
+	for _, testCase := range testCasesDecodeError {
+		_, err := enc.DecodeString(testCase.input)
+		switch err := err.(type) {
+		case CorruptInputError:
+			if int64(err) != testCase.pos {
+				t.Errorf("unexpected error position: want %d, got %d", testCase.pos, int64(err))
+			}
+		default:
+			t.Errorf("unexpected error type: want CorruptInputError, got %T", err)
+		}
+	}
+}
+
 func TestDecoder(t *testing.T) {
 	enc := NewEncoding()
 	for _, testCase := range testCasesDecode {
