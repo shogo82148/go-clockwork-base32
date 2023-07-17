@@ -136,6 +136,22 @@ var testCasesDecode = []testCase{
 		"Wow, it really works!",
 		"axqqeb10d5t20wk5c5p6ry90exqq4tvk44",
 	},
+
+	// "O" and "0" are treated as the same character.
+	{
+		"Wow, it really works!",
+		"AXQQEB1OD5T2OWK5C5P6RY9OEXQQ4TVK44",
+	},
+	{
+		"Wow, it really works!",
+		"axqqeb1od5t2owk5c5p6ry9oexqq4tvk44",
+	},
+
+	// "I", "L" and "1" are treated as the same character.
+	{"foobar", "CSQPYRKIE8"},
+	{"foobar", "CSQPYRKLE8"},
+	{"foobar", "csqpyrkie8"},
+	{"foobar", "csqpyrkle8"},
 }
 
 func TestDecode(t *testing.T) {
