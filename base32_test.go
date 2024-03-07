@@ -61,6 +61,18 @@ func TestEncode(t *testing.T) {
 	}
 }
 
+func TestAppendEncode(t *testing.T) {
+	enc := NewEncoding()
+	for _, testCase := range testCasesEncode {
+		want := []byte("lead" + testCase.encoded)
+		got := enc.AppendEncode([]byte("lead"), []byte(testCase.plain))
+		if !bytes.Equal(got, want) {
+			t.Errorf("encoded %q, expected %q, actual %q\n",
+				testCase.plain, want, got)
+		}
+	}
+}
+
 func TestEncoder(t *testing.T) {
 	enc := NewEncoding()
 	for _, testCase := range testCasesEncode {
@@ -198,6 +210,21 @@ func TestDecode(t *testing.T) {
 		if !bytes.Equal(plain, []byte(testCase.plain)) {
 			t.Errorf("decoded %q, expected %q, actual %q\n",
 				testCase.encoded, testCase.plain, plain)
+		}
+	}
+}
+
+func TestAppendDecode(t *testing.T) {
+	enc := NewEncoding()
+	for _, testCase := range testCasesDecode {
+		want := []byte("lead" + testCase.plain)
+		got, err := enc.AppendDecode([]byte("lead"), []byte(testCase.encoded))
+		if err != nil {
+			t.Errorf("error while decoding %q: %v", testCase.encoded, err)
+		}
+		if !bytes.Equal(got, want) {
+			t.Errorf("decoded %q, expected %q, actual %q\n",
+				testCase.encoded, want, got)
 		}
 	}
 }
