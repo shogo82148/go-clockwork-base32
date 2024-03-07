@@ -11,19 +11,13 @@ jobs:
       fail-fast: false
       matrix:
         go:
-          - "1.21.0-rc.3"
+          - "1.22"
+          - "1.21"
           - "1.20"
           - "1.19"
           - "1.18"
           - "1.17"
           - "1.16"
-        goexperiment: [""]
-        include:
-          # test with GOEXPERIMENT=loopvar
-          # https://github.com/golang/go/wiki/LoopvarExperiment
-          - os: ubuntu-latest
-            go: "1.21.0-rc.3"
-            goexperiment: "loopvar"
 
     steps:
       - uses: actions/checkout@v4
@@ -35,8 +29,6 @@ jobs:
       - name: test
         run: |
           go test -v -coverprofile=profile.cov ./...
-        env:
-          GOEXPERIMENT: ${{ matrix.goexperiment }}
 
       - uses: shogo82148/actions-goveralls@v1
         with:
