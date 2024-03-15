@@ -111,6 +111,15 @@ func (enc *Encoding) Encode(dst, src []byte) {
 	}
 }
 
+// AppendEncode appends the base32 encoded src to dst
+// and returns the extended buffer.
+func (enc *Encoding) AppendEncode(dst, src []byte) []byte {
+	n := enc.EncodedLen(len(src))
+	dst = grow(dst, n)
+	enc.Encode(dst[len(dst):][:n], src)
+	return dst[:len(dst)+n]
+}
+
 // EncodeToString returns the base32 encoding of src.
 func (enc *Encoding) EncodeToString(src []byte) string {
 	buf := make([]byte, enc.EncodedLen(len(src)))
@@ -310,6 +319,16 @@ func (enc *Encoding) Decode(dst, src []byte) (n int, err error) {
 	return enc.decode(dst, src)
 }
 
+// AppendDecode appends the base32 decoded src to dst
+// and returns the extended buffer.
+// If the input is malformed, it returns the partially decoded src and an error.
+func (enc *Encoding) AppendDecode(dst, src []byte) ([]byte, error) {
+	n := enc.DecodedLen(len(src))
+	dst = grow(dst, n)
+	n, err := enc.Decode(dst[len(dst):][:n], src)
+	return dst[:len(dst)+n], err
+}
+
 // DecodeString returns the bytes represented by the base32 string s.
 func (enc *Encoding) DecodeString(s string) ([]byte, error) {
 	buf := []byte(s)
@@ -405,4 +424,15 @@ func (d *decoder) Read(p []byte) (n int, err error) {
 // NewDecoder constructs a new base32 stream decoder.
 func NewDecoder(enc *Encoding, r io.Reader) io.Reader {
 	return &decoder{enc: enc, r: r}
+}
+
+// grow increases the capacity of the byte slice.
+func grow(buf []byte, n int) []byte {
+	if n < 0 {
+		panic("cannot be negative")
+	}
+	if n -= cap(buf) - len(buf); n > 0 {
+		buf = append(buf[:cap(buf)], make([]byte, n)...)[:len(buf)]
+	}
+	return buf
 }
