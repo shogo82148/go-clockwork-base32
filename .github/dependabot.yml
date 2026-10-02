@@ -18,4 +18,4 @@ updates:
     groups:
       actions-go-fuzz:
         patterns:
-          - "shogo82148/actions-go-fuzz"
+          - "shogo82148/actions-go-fuzz/*"
