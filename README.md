@@ -1,6 +1,6 @@
 # go-clockwork-base32
 
-![Test](https://github.com/shogo82148/go-clockwork-base32/workflows/Test/badge.svg)
+[![test](https://github.com/shogo82148/go-clockwork-base32/actions/workflows/test.yml/badge.svg)](https://github.com/shogo82148/go-clockwork-base32/actions/workflows/test.yml)
 [![PkgGoDev](https://pkg.go.dev/badge/github.com/shogo82148/go-clockwork-base32)](https://pkg.go.dev/github.com/shogo82148/go-clockwork-base32)
 
 An Implementation Clockwork-Base32 for Go.
@@ -50,6 +50,6 @@ func ExampleNewEncoder() {
 
 - [Clockwork Base32 Specification](https://gist.github.com/szktty/228f85794e4187882a77734c89c384a8)
 - [szktty/go-clockwork-base32](https://github.com/szktty/go-clockwork-base32)
-    - A reference implementation of Clockwork Base32 for Go.
+  - A reference implementation of Clockwork Base32 for Go.
 - [encoding/base32](https://golang.org/pkg/encoding/base32/)
-    - Go standard library of RFC 4648 base32 encoding
+  - Go standard library of RFC 4648 base32 encoding
