@@ -6,7 +6,7 @@ workflows:
     '.github/workflows/fuzz.yml':
         - 'actions/checkout@v7.0.1'
         - 'actions/setup-go@v7.0.0'
-        - 'shogo82148/actions-go-fuzz@v1.2.6'
+        - 'shogo82148/actions-go-fuzz@v1.2.7'
     '.github/workflows/reviewdog.yml':
         - 'actions/checkout@v7.0.1'
         - 'reviewdog/action-golangci-lint@v2.10.2'
@@ -36,9 +36,9 @@ dependencies:
         commit: 'sha1-3467363dab5b42db2b1372c5fd2b1771fea2ea48'
         owner_id: 48765237
         repo_id: 208637003
-    'shogo82148/actions-go-fuzz@v1.2.6':
-        ref: 'v1.2.6'
-        commit: 'sha1-0d0b84304d01c5a83a1b4453eb138fec74c1f662'
+    'shogo82148/actions-go-fuzz@v1.2.7':
+        ref: 'v1.2.7'
+        commit: 'sha1-f5addfafb428396a1321238d916c421eb25a1136'
         owner_id: 1157344
         repo_id: 658286023
     'shogo82148/actions-goveralls@v1.11.5':
